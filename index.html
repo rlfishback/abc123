@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#ffcf4a">
+<title>ABC 123</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<header class="bar">
+  <h1>ABC <span>123</span></h1>
+  <nav class="tabs" role="tablist">
+    <button class="tab active" data-mode="explore">👀 Look</button>
+    <button class="tab" data-mode="find">🔎 Find</button>
+  </nav>
+  <div class="opts">
+    <button id="setBtn" class="pill" aria-label="Letters or numbers">ABC</button>
+    <button id="caseBtn" class="pill" aria-label="Uppercase or lowercase">Aa</button>
+  </div>
+</header>
+
+<main>
+  <section id="explore" class="view active">
+    <div id="grid" class="grid"></div>
+  </section>
+
+  <section id="find" class="view">
+    <p id="prompt" class="prompt">Tap Start!</p>
+    <div id="choices" class="choices"></div>
+    <div class="row">
+      <button id="hearBtn" class="big">🔊 Hear it</button>
+      <span id="stars" class="stars" aria-live="polite"></span>
+    </div>
+  </section>
+</main>
+
+<div id="card" class="card hidden" role="dialog" aria-modal="true">
+  <div class="card-inner">
+    <div id="cardChar" class="card-char"></div>
+    <div id="cardPic" class="card-pic"></div>
+    <div id="cardWord" class="card-word"></div>
+    <div class="row">
+      <button id="prevBtn" class="big" aria-label="Previous">◀</button>
+      <button id="sayBtn" class="big" aria-label="Say it">🔊</button>
+      <button id="nextBtn" class="big" aria-label="Next">▶</button>
+    </div>
+    <button id="closeBtn" class="close" aria-label="Close">✕</button>
+  </div>
+</div>
+
+<div id="cheer" class="cheer hidden">🎉</div>
+<script src="script.js"></script>
+</body>
+</html>
