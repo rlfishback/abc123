@@ -93,7 +93,7 @@ function newRound() {
     b.onclick = () => pick(i, b);
     c.appendChild(b);
   });
-  $("prompt").textContent = askText(list[t]);
+  $("prompt").textContent = (state.set === "letters" ? "Find the letter" : "Find the number") + " 👂";
   say(askText(list[t]));
 }
 function pick(i, btn) {
