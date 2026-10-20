@@ -5,3 +5,11 @@ Desktop.ini
 .idea/
 .env
 *.env
+
+# TTS tooling (never commit)
+.kokoro-venv/
+.venv/
+.kokoro-model/
+*.onnx
+voices-*.bin
+__pycache__/
