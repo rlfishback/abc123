@@ -23,7 +23,7 @@ WORDS = dict(A="apple", B="ball", C="cat", D="dog", E="egg", F="fish", G="goat",
              I="igloo", J="juice", K="kite", L="lion", M="moon", N="nest", O="octopus",
              P="pig", Q="queen", R="rainbow", S="sun", T="tree", U="umbrella", V="van",
              W="whale", X="fox", Y="yo-yo", Z="zebra")
-NUMS = ["zero","one","two","three","four","five","six","seven","eight","nine","ten"]
+NUMS = ["zero","one","two","three","four","five","six","seven","eight","nine","ten","eleven","twelve","thirteen","fourteen","fifteen","sixteen","seventeen","eighteen","nineteen","twenty"]
 GAP = 0.8  # seconds of silence between the letter and its phrase on card clips
 PRAISE = ["Yay!", "Great job!", "You got it!", "Awesome!"]
 

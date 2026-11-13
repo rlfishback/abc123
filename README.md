@@ -1,6 +1,6 @@
 # ABC 123
 
-A small, phone-friendly website to help a 4-year-old recognize letters (A–Z, upper and lower case) and numbers 0–10.
+A small, phone-friendly website to help a 4-year-old recognize letters (A–Z, upper and lower case) and numbers 0–20.
 
 - **Look:** tap a big tile to see the character with a picture, and hear it spoken ("B is for ball"). Swipe or use the arrows to go through them.
 - **Find:** it says "Find the letter M", and the child taps the right one of 4. Correct answers get a cheer and a star.

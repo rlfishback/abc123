@@ -7,7 +7,7 @@ const LETTERS = [
   ["P","pig","🐷"],["Q","queen","👑"],["R","rainbow","🌈"],["S","sun","☀️"],["T","tree","🌳"],
   ["U","umbrella","☂️"],["V","van","🚐"],["W","whale","🐳"],["X","fox","🦊"],["Y","yo-yo","🪀"],["Z","zebra","🦓"],
 ];
-const NUM_WORDS = ["zero","one","two","three","four","five","six","seven","eight","nine","ten"];
+const NUM_WORDS = ["zero","one","two","three","four","five","six","seven","eight","nine","ten","eleven","twelve","thirteen","fourteen","fifteen","sixteen","seventeen","eighteen","nineteen","twenty"];
 const NUM_ICON = "⭐";
 const COLORS = ["--c1","--c2","--c3","--c4","--c5","--c6"];
 
@@ -23,7 +23,9 @@ function items() {
     }));
   }
   return NUM_WORDS.map((w, n) => ({
-    ch: String(n), name: w, word: w, pic: n === 0 ? "🫙" : NUM_ICON.repeat(n), say: `${w}`,
+    ch: String(n), name: w, word: w, pic: n === 0 ? "🫙" : (n <= 10 ? NUM_ICON.repeat(n) : ""),
+    // 11–20: a full ten-frame plus a second frame with the leftover ones (empty cells included).
+    frames: n > 10 ? [10, n - 10] : null, say: `${w}`,
     key: `num-${n}`, nameKey: `num-${n}`, findKey: `find-number-${n}`,
   }));
 }
@@ -66,6 +68,7 @@ function preload(keys) { keys.forEach(clip); }
 // --- Look mode ------------------------------------------------------------------
 function renderGrid() {
   const g = $("grid"); g.innerHTML = "";
+  g.classList.toggle("nums", state.set === "numbers");
   items().forEach((it, i) => {
     const b = document.createElement("button");
     b.className = "tile"; b.textContent = it.ch; b.style.background = color(i);
@@ -74,11 +77,30 @@ function renderGrid() {
     g.appendChild(b);
   });
 }
+// For 11–20, draw two 2×5 ten-frames (a full ten, then the extra ones).
+function showPic(it) {
+  const el = $("cardPic");
+  el.replaceChildren();
+  el.classList.toggle("frames", !!it.frames);
+  if (!it.frames) { el.textContent = it.pic; return; }
+  it.frames.forEach((filled) => {
+    const frame = document.createElement("div");
+    frame.className = "ten-frame";
+    frame.setAttribute("aria-hidden", "true");
+    for (let i = 0; i < 10; i++) {
+      const cell = document.createElement("span");
+      cell.className = "cell" + (i < filled ? " filled" : "");
+      if (i < filled) cell.textContent = NUM_ICON;
+      frame.appendChild(cell);
+    }
+    el.appendChild(frame);
+  });
+}
 function openCard(i) {
   const list = items(); state.idx = (i + list.length) % list.length;
   const it = list[state.idx];
   $("cardChar").textContent = it.ch; $("cardChar").style.color = color(state.idx);
-  $("cardPic").textContent = it.pic; $("cardWord").textContent = it.word;
+  showPic(it); $("cardWord").textContent = it.word;
   $("card").classList.remove("hidden");
   play([it.key, it.say]);
   const l = items(); preload([l[(state.idx + 1) % l.length].key]);

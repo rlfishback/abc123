@@ -25,6 +25,11 @@ main{flex:1;display:flex;padding:14px}
 .view.active{display:flex;flex-direction:column}
 
 .grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fill,minmax(clamp(64px,20vw,110px),1fr));align-content:start}
+/* 21 number tiles (0–20): 3 even columns on a phone (7 rows). Wider screens fill naturally. */
+.grid.nums{grid-template-columns:repeat(3,1fr)}
+@media (min-width:560px){
+  .grid.nums{grid-template-columns:repeat(auto-fill,minmax(110px,1fr))}
+}
 .tile{aspect-ratio:1;border-radius:var(--radius);font-size:clamp(38px,11vw,70px);font-weight:700;color:#fff;
   box-shadow:0 5px 0 rgba(0,0,0,.18);transition:transform .08s}
 .tile:active{transform:translateY(4px) scale(.97);box-shadow:0 1px 0 rgba(0,0,0,.18)}
@@ -61,3 +66,22 @@ main{flex:1;display:flex;padding:14px}
   animation:pop .8s ease-out forwards}
 @keyframes pop{0%{transform:scale(.2);opacity:0}40%{transform:scale(1.1);opacity:1}100%{transform:scale(1);opacity:0}}
 @media (prefers-reduced-motion:reduce){.cheer,.choice.wrong{animation:none}}
+
+/* Ten-frames for numbers 11–20: a full 2×5 of ten, plus a second frame with the extras. */
+.card-pic.frames{font-size:unset;word-break:normal;display:flex;flex-direction:column;align-items:center;
+  gap:clamp(8px,2vw,14px);min-height:0;flex-shrink:0}
+.ten-frame{display:grid;grid-template-columns:repeat(5,1fr);grid-template-rows:repeat(2,1fr);
+  border:3px solid var(--ink);border-radius:10px;background:#fff8e7;overflow:hidden}
+.ten-frame .cell{width:clamp(36px,11vw,56px);height:clamp(36px,11vw,56px);
+  display:flex;align-items:center;justify-content:center;
+  font-size:clamp(22px,7.5vw,38px);line-height:1;
+  border-right:2px solid var(--ink);border-bottom:2px solid var(--ink)}
+.ten-frame .cell:nth-child(5n){border-right:0}
+.ten-frame .cell:nth-child(n+6){border-bottom:0}
+
+@media (orientation:landscape) and (max-height:500px){
+  /* Sit the two ten-frames side by side so they stay readable on a short screen. */
+  .card-pic.frames{flex-direction:row;gap:12px}
+  .ten-frame .cell{width:min(8vh,32px);height:min(8vh,32px);font-size:min(5.5vh,22px)}
+  .card:has(.card-pic.frames) .card-char{font-size:min(28vh,160px)}
+}
