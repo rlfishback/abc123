@@ -11,7 +11,17 @@ const NUM_WORDS = ["zero","one","two","three","four","five","six","seven","eight
 const NUM_ICON = "⭐";
 const COLORS = ["--c1","--c2","--c3","--c4","--c5","--c6"];
 
-const state = { mode: "explore", set: "letters", lower: false, idx: 0, target: null, streak: 0 };
+// Gentle anti-guessing in Find mode (timings in ms).
+const PAUSE_BASE = 1500, PAUSE_STEP = 500, PAUSE_CAP = 3000;
+const RAPID_WINDOW = 2000, RAPID_TAPS = 3;
+const MIN_CHOICES = 3, MAX_CHOICES = 4;
+const SHRINK_AFTER = 2, RESTORE_AFTER = 2; // struggling rounds / first-try wins
+
+const state = {
+  mode: "explore", set: "letters", lower: false, idx: 0, target: null,
+  stars: 0, misses: 0, choiceCount: MAX_CHOICES, struggle: 0, firstTries: 0,
+  lockId: 0, locked: false, listenAgain: false, won: false, tapTimes: [],
+};
 const $ = (id) => document.getElementById(id);
 
 function items() {
@@ -43,19 +53,27 @@ function fallback(text) {
     u.onend = u.onerror = res; speechSynthesis.speak(u);
   });
 }
+let cancelPlay = null;
 function stopAll() {
   token++; queue = [];
+  if (cancelPlay) { cancelPlay(); cancelPlay = null; }
   if (cur) { cur.pause(); cur = null; }
   if ("speechSynthesis" in window) speechSynthesis.cancel();
 }
 function playOne([key, text], my) {
   return new Promise(res => {
     const a = clip(key); cur = a;
-    let done = false;
+    let done = false, timer = 0;
     const fin = (ok) => { if (done) return; done = true; a.onended = a.onerror = null;
+      clearTimeout(timer); if (cancelPlay === finCancel) cancelPlay = null;
       if (!ok && my === token) fallback(text).then(res); else res(); };
+    const finCancel = () => fin(true);
+    cancelPlay = finCancel;
     a.onended = () => fin(true); a.onerror = () => fin(false);
     try { a.currentTime = 0; } catch (e) {}
+    // Duration cap so a missed 'ended' event can't leave Find mode locked.
+    const cap = (Number.isFinite(a.duration) && a.duration > 0 ? a.duration * 1000 : 5000) + 250;
+    timer = setTimeout(() => fin(true), cap);
     const p = a.play(); if (p && p.catch) p.catch(() => fin(false));
   });
 }
@@ -122,37 +140,150 @@ $("card").addEventListener("touchend", e => {
 // --- Find mode --------------------------------------------------------------------
 function shuffle(a) { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
 function askText(it) { return state.set === "letters" ? `Find the letter ${it.name}` : `Find the number ${it.name}`; }
+function promptPhrase() { return state.set === "letters" ? "Find the letter" : "Find the number"; }
+function pauseMs() { return Math.min(PAUSE_CAP, PAUSE_BASE + PAUSE_STEP * Math.max(0, state.misses - 1)); }
+function renderStars() {
+  const el = $("stars");
+  el.textContent = `⭐ ${state.stars}`;
+  el.setAttribute("aria-label", state.stars === 1 ? "1 star" : `${state.stars} stars`);
+}
+function setLocked(on) {
+  state.locked = on;
+  $("choices").classList.toggle("locked", on);
+}
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+async function lockFor(ms, parts, lockId) {
+  setLocked(true);
+  const until = Date.now() + ms;
+  if (parts && parts.length) await play(...parts);
+  const wait = until - Date.now();
+  if (wait > 0) await sleep(wait);
+  if (lockId === state.lockId && state.mode === "find" && !state.won) setLocked(false);
+}
+function recordTap() {
+  const now = Date.now();
+  state.tapTimes = state.tapTimes.filter(t => now - t < RAPID_WINDOW);
+  state.tapTimes.push(now);
+  return state.tapTimes.length >= RAPID_TAPS;
+}
+function fadeWrong() {
+  const open = [...$("choices").querySelectorAll(".choice:not(.faded)")];
+  const wrong = open.filter(b => +b.dataset.i !== state.target);
+  if (!wrong.length) return;
+  const b = wrong[Math.floor(Math.random() * wrong.length)];
+  b.classList.add("faded");
+  b.tabIndex = -1;
+  b.setAttribute("aria-hidden", "true");
+}
+function pulseCorrect() {
+  const b = $("choices").querySelector(`.choice[data-i="${state.target}"]`);
+  if (b) b.classList.add("hint");
+}
+function applyHints() {
+  if (state.misses === 2) fadeWrong();
+  if (state.misses >= 3) {
+    fadeWrong();
+    pulseCorrect();
+  }
+}
+function promptParts() {
+  const it = items()[state.target];
+  return [[it.findKey, askText(it)]];
+}
+function startMissPause(rapid) {
+  state.listenAgain = !!rapid;
+  const id = ++state.lockId;
+  const parts = rapid ? [["lets-listen-again", "Let's listen again."], ...promptParts()] : promptParts();
+  lockFor(pauseMs(), parts, id);
+}
+function listenAgain() {
+  if (state.listenAgain || state.won || state.target === null) return;
+  state.listenAgain = true;
+  const id = ++state.lockId;
+  lockFor(Math.max(pauseMs(), PAUSE_BASE), [["lets-listen-again", "Let's listen again."], ...promptParts()], id);
+}
+function updateAdaptive(tries) {
+  if (tries === 1) {
+    state.firstTries++;
+    state.struggle = 0;
+    if (state.firstTries >= RESTORE_AFTER) state.choiceCount = MAX_CHOICES;
+  } else {
+    state.firstTries = 0;
+    state.struggle++;
+    if (state.struggle >= SHRINK_AFTER) state.choiceCount = MIN_CHOICES;
+  }
+}
+function resetFind(start) {
+  state.target = null;
+  state.stars = 0;
+  state.misses = 0;
+  state.choiceCount = MAX_CHOICES;
+  state.struggle = 0;
+  state.firstTries = 0;
+  state.lockId++;
+  state.locked = false;
+  state.listenAgain = false;
+  state.won = false;
+  state.tapTimes = [];
+  renderStars();
+  $("choices").classList.remove("locked");
+  if (start) newRound();
+}
 function newRound() {
+  state.misses = 0;
+  state.tapTimes = [];
+  state.listenAgain = false;
+  state.won = false;
+  state.lockId++;
+  setLocked(false);
   const list = items();
   let t; do { t = Math.floor(Math.random() * list.length); } while (state.target === t && list.length > 1);
   state.target = t;
-  const others = shuffle(list.map((_, i) => i).filter(i => i !== t)).slice(0, 3);
+  const nOthers = Math.min(state.choiceCount - 1, list.length - 1);
+  const others = shuffle(list.map((_, i) => i).filter(i => i !== t)).slice(0, nOthers);
   const opts = shuffle([t, ...others]);
   const c = $("choices"); c.innerHTML = "";
+  c.classList.toggle("count-3", opts.length === 3);
+  c.classList.toggle("count-4", opts.length !== 3);
   opts.forEach((i, k) => {
     const b = document.createElement("button");
     b.className = "choice"; b.textContent = list[i].ch; b.style.background = color(k + t);
+    b.dataset.i = i;
     b.setAttribute("aria-label", list[i].name);
     b.onclick = () => pick(i, b);
     c.appendChild(b);
   });
-  $("prompt").textContent = (state.set === "letters" ? "Find the letter" : "Find the number") + " 👂";
+  $("prompt").textContent = promptPhrase() + " 👂";
   play([list[t].findKey, askText(list[t])]);
   preload(opts.map(i => list[i].key));
 }
 function pick(i, btn) {
+  if (state.target === null || state.won) return;
+  const rapid = recordTap();
+  if (state.locked) { if (rapid) listenAgain(); return; }
+  if (btn.classList.contains("faded")) return;
   const list = items();
   if (i === state.target) {
-    btn.classList.add("right"); state.streak++;
-    $("stars").textContent = "⭐".repeat(Math.min(state.streak, 10));
-    cheer();
-    const k = state.streak % 4;
+    const tries = state.misses + 1;
+    btn.classList.add("right");
+    state.won = true;
+    state.lockId++;
+    setLocked(true);
+    const rewarded = tries <= 2;
+    if (rewarded) { state.stars++; renderStars(); cheer(); }
+    updateAdaptive(tries);
     const my = token + 1; // play() bumps token synchronously; a newer play() cancels the next round
-    play([`praise-${k + 1}`, ["Yay!", "Great job!", "You got it!", "Awesome!"][k]], [list[i].key, list[i].say])
-      .then(() => { if (my === token && state.mode === "find") setTimeout(newRound, 300); });
+    const parts = [];
+    if (rewarded) {
+      const k = state.stars % 4;
+      parts.push([`praise-${k + 1}`, ["Yay!", "Great job!", "You got it!", "Awesome!"][k]]);
+    }
+    parts.push([list[i].key, list[i].say]);
+    play(...parts).then(() => { if (my === token && state.mode === "find") setTimeout(newRound, 300); });
   } else {
-    btn.classList.remove("wrong"); void btn.offsetWidth; btn.classList.add("wrong");
-    play(["thats", "That's"], [list[i].nameKey, list[i].name], ["try-again", "Try again!"]);
+    state.misses++;
+    applyHints();
+    startMissPause(rapid);
   }
 }
 function cheer() {
@@ -168,16 +299,18 @@ function refresh() {
   $("caseBtn").textContent = state.lower ? "aa" : "Aa";
   $("caseBtn").style.visibility = state.set === "letters" ? "visible" : "hidden";
   renderGrid();
-  if (state.mode === "find") { state.target = null; state.streak = 0; $("stars").textContent = ""; newRound(); }
+  if (state.mode === "find") resetFind(true);
 }
 document.querySelectorAll(".tab").forEach(t => t.onclick = () => {
   document.querySelectorAll(".tab").forEach(x => x.classList.toggle("active", x === t));
   state.mode = t.dataset.mode;
   document.querySelectorAll(".view").forEach(v => v.classList.toggle("active", v.id === state.mode));
-  if (state.mode === "find") { state.target = null; state.streak = 0; $("stars").textContent = ""; $("prompt").textContent = "Tap 🔊 to start!"; $("choices").innerHTML = ""; }
+  if (state.mode === "find") { resetFind(false); $("prompt").textContent = "Tap 🔊 to start!"; $("choices").innerHTML = ""; }
 });
 $("setBtn").onclick = () => { state.set = state.set === "letters" ? "numbers" : "letters"; refresh(); };
 $("caseBtn").onclick = () => { state.lower = !state.lower; refresh(); };
 
-preload(["praise-1","praise-2","praise-3","praise-4","thats","try-again"]);
+preload(["praise-1","praise-2","praise-3","praise-4","lets-listen-again"]);
+renderStars();
 refresh();
+window.__abc = state;

@@ -3,7 +3,7 @@
 A small, phone-friendly website to help a 4-year-old recognize letters (A–Z, upper and lower case) and numbers 0–20.
 
 - **Look:** tap a big tile to see the character with a picture, and hear it spoken ("B is for ball"). Swipe or use the arrows to go through them.
-- **Find:** it says "Find the letter M", and the child taps the right one of 4. Correct answers get a cheer and a star.
+- **Find:** it says "Find the letter M", and the child taps the right one of a few choices. A first- or second-try match gets a cheer and a star. A miss pauses briefly and the prompt is repeated (the pause grows a little after more misses). After two misses some wrong choices fade out, and after three the right one gently pulses, so the round still ends in a success. Rapid tapping takes a short "Let's listen again" pause. After a run of misses the next rounds show fewer choices, and the full set comes back after a few first-try wins.
 - **ABC/123** switches between letters and numbers. **Aa** switches upper and lower case.
 
 It's plain HTML, CSS and JS, with no build step and no tracking. Speech is pre-recorded MP3 clips in `audio/` (the browser's built-in voice is only a fallback if a clip fails to load).

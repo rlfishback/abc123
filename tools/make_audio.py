@@ -41,10 +41,13 @@ def clips():
         yield f"praise-{i}", p
     yield "thats", "That's"
     yield "try-again", "Try again!"
+    yield "lets-listen-again", "Let's listen again."
 
 def main():
     ap = argparse.ArgumentParser(); ap.add_argument("--model", default="../.kokoro-model")
-    ap.add_argument("--out", default="audio"); a = ap.parse_args()
+    ap.add_argument("--out", default="audio")
+    ap.add_argument("--skip-existing", action="store_true", help="leave clips that already exist untouched")
+    a = ap.parse_args()
     k = Kokoro(os.path.join(a.model, "kokoro-v1.0.onnx"), os.path.join(a.model, "voices-v1.0.bin"))
     tok = Tokenizer()
     os.makedirs(a.out, exist_ok=True)
@@ -60,6 +63,9 @@ def main():
     with tempfile.TemporaryDirectory() as td:
         for key, text in clips():
             out = os.path.join(a.out, key + ".mp3")
+            if a.skip_existing and os.path.exists(out):
+                print(key, "(skipped)")
+                continue
             parts = text if isinstance(text, tuple) else (text,)
             wavs = [os.path.join(td, f"p{i}.wav") for i in range(len(parts))]
             sr = [synth(t, w) for t, w in zip(parts, wavs)][0]
