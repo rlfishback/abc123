@@ -15,17 +15,17 @@ button{font:inherit;color:inherit;border:0;cursor:pointer}
   background:var(--bar);padding:10px 14px;box-shadow:0 3px 0 #e0b02f}
 .bar h1{margin:0;font-size:clamp(22px,6vw,34px);letter-spacing:1px}
 .bar h1 span{color:var(--c1)}
-.tabs,.opts{display:flex;gap:8px}
-.tab,.pill{background:#fff;border-radius:999px;padding:10px 16px;font-size:clamp(16px,4.5vw,20px);
+.tabs,.opts,.sets{display:flex;gap:8px}
+.tab,.pill{background:#fff;border-radius:999px;padding:10px 14px;font-size:clamp(16px,4.5vw,20px);
   box-shadow:0 3px 0 #d9a92a;min-height:48px}
-.tab.active{background:var(--ink);color:#fff;box-shadow:0 3px 0 #000}
+.tab.active,.set-btn.active{background:var(--ink);color:#fff;box-shadow:0 3px 0 #000}
 
 main{flex:1;display:flex;padding:14px}
 .view{display:none;width:100%}
 .view.active{display:flex;flex-direction:column}
 
 .grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fill,minmax(clamp(64px,20vw,110px),1fr));align-content:start}
-/* 21 number tiles (0–20): 3 even columns on a phone (7 rows). Wider screens fill naturally. */
+/* 11–20 (10 tiles): 3 even columns on a phone. 0–10 uses the default auto-fill grid. */
 .grid.nums{grid-template-columns:repeat(3,1fr)}
 @media (min-width:560px){
   .grid.nums{grid-template-columns:repeat(auto-fill,minmax(110px,1fr))}

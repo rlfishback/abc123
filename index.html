@@ -15,7 +15,11 @@
     <button class="tab" data-mode="find">🔎 Find</button>
   </nav>
   <div class="opts">
-    <button id="setBtn" class="pill" aria-label="Letters or numbers">ABC</button>
+    <div class="sets" role="group" aria-label="Letters, 0 to 10, or 11 to 20">
+      <button class="pill set-btn active" data-set="letters">ABC</button>
+      <button class="pill set-btn" data-set="nums-0-10">0–10</button>
+      <button class="pill set-btn" data-set="nums-11-20">11–20</button>
+    </div>
     <button id="caseBtn" class="pill" aria-label="Uppercase or lowercase">Aa</button>
   </div>
 </header>

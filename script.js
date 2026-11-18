@@ -1,5 +1,6 @@
 // ABC 123: letter and number recognition for little kids.
-// Two modes: "Look" (tap a tile to see and hear it) and "Find" (hear one, tap the match).
+// Look (tap a tile to see and hear it) or Find (hear one, tap the match).
+// Sets: letters (ABC), numbers 0–10, and numbers 11–20.
 const LETTERS = [
   ["A","apple","🍎"],["B","ball","⚽"],["C","cat","🐱"],["D","dog","🐶"],["E","egg","🥚"],
   ["F","fish","🐟"],["G","goat","🐐"],["H","hat","🎩"],["I","igloo","🛖"],["J","juice","🧃"],
@@ -24,6 +25,17 @@ const state = {
 };
 const $ = (id) => document.getElementById(id);
 
+function numItems(from, to) {
+  return NUM_WORDS.slice(from, to + 1).map((w, i) => {
+    const n = from + i;
+    return {
+      ch: String(n), name: w, word: w, pic: n === 0 ? "🫙" : (n <= 10 ? NUM_ICON.repeat(n) : ""),
+      // 11–20: a full ten-frame plus a second frame with the leftover ones (empty cells included).
+      frames: n > 10 ? [10, n - 10] : null, say: `${w}`,
+      key: `num-${n}`, nameKey: `num-${n}`, findKey: `find-number-${n}`,
+    };
+  });
+}
 function items() {
   if (state.set === "letters") {
     return LETTERS.map(([ch, word, pic]) => ({
@@ -32,12 +44,7 @@ function items() {
       key: `card-${ch.toLowerCase()}`, nameKey: `letter-${ch.toLowerCase()}`, findKey: `find-letter-${ch.toLowerCase()}`,
     }));
   }
-  return NUM_WORDS.map((w, n) => ({
-    ch: String(n), name: w, word: w, pic: n === 0 ? "🫙" : (n <= 10 ? NUM_ICON.repeat(n) : ""),
-    // 11–20: a full ten-frame plus a second frame with the leftover ones (empty cells included).
-    frames: n > 10 ? [10, n - 10] : null, say: `${w}`,
-    key: `num-${n}`, nameKey: `num-${n}`, findKey: `find-number-${n}`,
-  }));
+  return state.set === "nums-11-20" ? numItems(11, 20) : numItems(0, 10);
 }
 const color = (i) => `var(${COLORS[i % COLORS.length]})`;
 
@@ -86,7 +93,7 @@ function preload(keys) { keys.forEach(clip); }
 // --- Look mode ------------------------------------------------------------------
 function renderGrid() {
   const g = $("grid"); g.innerHTML = "";
-  g.classList.toggle("nums", state.set === "numbers");
+  g.classList.toggle("nums", state.set === "nums-11-20");
   items().forEach((it, i) => {
     const b = document.createElement("button");
     b.className = "tile"; b.textContent = it.ch; b.style.background = color(i);
@@ -295,7 +302,9 @@ $("hearBtn").onclick = () => { if (state.target === null) newRound(); else { con
 
 // --- Controls ---------------------------------------------------------------------
 function refresh() {
-  $("setBtn").textContent = state.set === "letters" ? "ABC" : "123";
+  stopAll();
+  $("card").classList.add("hidden");
+  document.querySelectorAll(".set-btn").forEach(b => b.classList.toggle("active", b.dataset.set === state.set));
   $("caseBtn").textContent = state.lower ? "aa" : "Aa";
   $("caseBtn").style.visibility = state.set === "letters" ? "visible" : "hidden";
   renderGrid();
@@ -307,7 +316,11 @@ document.querySelectorAll(".tab").forEach(t => t.onclick = () => {
   document.querySelectorAll(".view").forEach(v => v.classList.toggle("active", v.id === state.mode));
   if (state.mode === "find") { resetFind(false); $("prompt").textContent = "Tap 🔊 to start!"; $("choices").innerHTML = ""; }
 });
-$("setBtn").onclick = () => { state.set = state.set === "letters" ? "numbers" : "letters"; refresh(); };
+document.querySelectorAll(".set-btn").forEach(b => b.onclick = () => {
+  if (state.set === b.dataset.set) return;
+  state.set = b.dataset.set;
+  refresh();
+});
 $("caseBtn").onclick = () => { state.lower = !state.lower; refresh(); };
 
 preload(["praise-1","praise-2","praise-3","praise-4","lets-listen-again"]);
